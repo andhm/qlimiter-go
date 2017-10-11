@@ -10,9 +10,9 @@ import (
     "time"
     // _ "net/http/pprof"
 
-    "qlimiter/util"
-    core "qlimiter/core"
-    "qlimiter/log"
+    "github.com/andhm/qlimiter-go/util"
+    core "github.com/andhm/qlimiter-go/core"
+    "github.com/andhm/qlimiter-go/log"
 )
 
 const (
