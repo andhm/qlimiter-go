@@ -22,6 +22,11 @@ try {
     $limitMax = 1000;     // 每秒超过该值即触发限流，limit方法返回值将为false
     $retCurrLimitVal = 0; // 当前秒，并发量
     $res = $client->limit($limitKey, $limitMax, $retCurrLimitVal); // 返回值 true：未触发限流， false：触发限流
+    if ($res) {
+        echo '没有触发限流，当前值：'.$retCurrLimitVal;
+    } else {
+        echo '触发限流！';
+    }
 } catch (Exception $ex) {
     var_dump($client->getHost(), $ex->getMessage());
 }
