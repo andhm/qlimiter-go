@@ -13,6 +13,7 @@
 
 2. 客户端调用 （php版本，sdk位于client文件夹内，将该文件夹内的文件引入到自己项目中即可）
 ```php
+<?php
 require 'init.php';
 define("QLIMITER_PHP_ROOT", "{$path-to-sdk}");
 $client = new Qlimiter_Client("127.0.0.1", 9091);
@@ -20,7 +21,7 @@ try {
     $limitKey = 'test';   // 根据不同的业务设置不同的key
     $limitMax = 1000;     // 每秒超过该值即触发限流，limit方法返回值将为false
     $retCurrLimitVal = 0; // 当前秒，并发量
-    $res = $client->limit($limitKey, 1000, $retCurrLimitVal); // 返回值 true：未触发限流， false：触发限流
+    $res = $client->limit($limitKey, $limitMax, $retCurrLimitVal); // 返回值 true：未触发限流， false：触发限流
 } catch (Exception $ex) {
     var_dump($client->getHost(), $ex->getMessage());
 }
