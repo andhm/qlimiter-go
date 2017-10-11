@@ -8,7 +8,7 @@ import (
     // "fmt"
     "strconv"
 
-    "qlimiter/util"
+    "github.com/andhm/qlimiter-go/util"
 )
 
 const (
