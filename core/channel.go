@@ -8,8 +8,8 @@ import (
     "io"
     "sync"
 
-    "qlimiter/protocol"
-    "qlimiter/util"
+    "github.com/andhm/qlimiter-go/protocol"
+    "github.com/andhm/qlimiter-go/util"
 )
 
 var (
