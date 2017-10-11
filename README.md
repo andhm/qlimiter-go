@@ -8,10 +8,10 @@
 # 使用
 1. 启动 server (提前编译好 qlimiter)
 ```shell
-./qlimiter
+./qlimiter &
 ```
 
-2. 客户端调用 （php版本，sdk位于client文件夹内，将该文件夹内的文件引入到项目中即可）
+2. 客户端调用 （php版本，sdk位于client文件夹内，将该文件夹内的文件引入到自己项目中即可）
 ```php
 require 'init.php';
 define("QLIMITER_PHP_ROOT", "{$path-to-sdk}");
