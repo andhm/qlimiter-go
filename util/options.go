@@ -4,7 +4,7 @@ import (
     "flag"
     "fmt"
 
-    "qlimiter/log"
+    "github.com/andhm/qlimiter-go/log"
 )
 
 type Options struct {
