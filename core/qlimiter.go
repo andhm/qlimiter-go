@@ -5,9 +5,9 @@ import (
     "time"
     "strconv"
 
-    "qlimiter/protocol"
-    "qlimiter/util"
-    "qlimiter/log"
+    "github.com/andhm/qlimiter-go/protocol"
+    "github.com/andhm/qlimiter-go/util"
+    "github.com/andhm/qlimiter-go/log"
 )
 
 var logger *lg.LgWarpper
