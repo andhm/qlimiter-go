@@ -13,12 +13,8 @@ import (
 )
 
 var (
-    ErrChannelShutdown         = fmt.Errorf("The channel has been shutdown.")
-    ErrRequestTimeout          = fmt.Errorf("Request timeout.")
-)
-
-const (
-    defaultSendTimeout      = 1*time.Second
+    ErrChannelShutdown         = fmt.Errorf("The channel has been shutdown")
+    ErrRequestTimeout          = fmt.Errorf("Request timeout")
 )
 
 type Channel struct {
@@ -52,12 +48,18 @@ func (channel *Channel) Recv(timeOut time.Duration) (*protocol.Message, error) {
     defer timer.Stop()
 
     select {
-    case recvData := <- channel.recvChan:
+    case recvData, ok := <- channel.recvChan:
+        if !ok {
+            logger.Debug("Recv recvChan shutdown. ClientIp[%s]", channel.ClientIp)
+            return nil, ErrChannelShutdown
+        }
         recvMsg := recvData.msg
         logger.Debug("Recv succ. RequestId[%v], ClientIp[%s]", recvMsg.RequestId(), channel.ClientIp)
         return recvMsg, nil
     case <-timer.C:
         logger.Warn("Recv timeout. ClientIp[%s]", channel.ClientIp)
+        // close
+        channel.close()
         return nil, ErrRequestTimeout
     case <-channel.shutdownChan:
         logger.Debug("Recv channel shutdown. ClientIp[%s]", channel.ClientIp)
@@ -65,18 +67,19 @@ func (channel *Channel) Recv(timeOut time.Duration) (*protocol.Message, error) {
     }
 }
 
-func (channel *Channel) Send(sendMsg []byte, timeOut time.Duration) error {
-    timer := time.NewTimer(timeOut)
-    defer timer.Stop()
+func (channel *Channel) Send(sendMsg []byte) error {
+    defer func() {
+        // some error that sending to closed channel, unusually
+        if err:=recover(); err!=nil {
+            logger.Warn("Send panic - %v", err)
+        }
+    }()
 
     sendData := sendData {data: sendMsg}
     select {
-    case channel.sendChan<-sendData:
+    case channel.sendChan <- sendData:
         logger.Debug("Send succ. ClientIp[%s]", channel.ClientIp)
         return nil
-    case <-timer.C:
-        logger.Warn("Send timeout. ClientIp[%s]", channel.ClientIp)
-        return ErrRequestTimeout
     case <-channel.shutdownChan:
         logger.Debug("Send channel shutdown. ClientIp[%s]", channel.ClientIp)
         return ErrChannelShutdown
@@ -96,9 +99,14 @@ func (channel *Channel) recv () {
 }
 
 func (channel *Channel) recvLoop() error {
-    i := 0
+    // close recv channel
+    defer channel.closeRecvChan()
+
     for {
-        i++
+        if channel.shutdown {
+            logger.Debug("recvLoop channel shutdown. ClientIp[%s]", channel.ClientIp)
+            return ErrChannelShutdown
+        }
         msg, err := protocol.DecodeFromReader(channel.bufRead)
         if err != nil {
             return err
@@ -109,19 +117,13 @@ func (channel *Channel) recvLoop() error {
 }
 
 func (channel *Channel) send() {
-    timer := time.NewTimer(defaultSendTimeout)
-
     for {
-        if !timer.Stop() {
-            select {
-            case <- timer.C:
-            default:
-            }
-        }
-        timer.Reset(defaultSendTimeout)
-
         select {
-        case sendData :=<- channel.sendChan:
+        case sendData, ok :=<- channel.sendChan:
+            if !ok {
+                logger.Debug("send sendChan shutdown. ClientIp[%s]", channel.ClientIp)
+                return
+            }
             if sendData.data != nil {
                 sent := 0
                 for sent < len(sendData.data) {
@@ -129,21 +131,20 @@ func (channel *Channel) send() {
                     if err != nil {
                         logger.Warn("send error - %v. ClientIp[%s]", err, channel.ClientIp)
                         channel.close()
+                        // close send channel
+                        channel.closeSendChan()
                         return
                     }
                     sent += n
                 }
             }
-        case <-timer.C:
-            logger.Warn("send timeout. ClientIp[%s]", channel.ClientIp)
-            channel.close()
-            return
         case <- channel.shutdownChan:
             logger.Debug("send channel shutdown. ClientIp[%s]", channel.ClientIp)
+            // close send channel
+            channel.closeSendChan()
             return
         }
     }
-
 }
 
 func (channel *Channel) close() error {
@@ -160,9 +161,19 @@ func (channel *Channel) close() error {
     return nil
 }
 
+func (channel *Channel) closeRecvChan() error {
+    close(channel.recvChan)
+    return nil
+}
+
+func (channel *Channel) closeSendChan() error {
+    close(channel.sendChan)
+    return nil
+}
+
 func BuildChannel(conn net.Conn, opts *util.Options) *Channel {
     logger.Debug("ready to build channel. ClientIp[%s]", conn.RemoteAddr().String())
-    channel := &Channel { 
+    channel := &Channel {
         conn:       conn,
         bufRead:    bufio.NewReader(conn),
         ClientIp:   conn.RemoteAddr().String(),
