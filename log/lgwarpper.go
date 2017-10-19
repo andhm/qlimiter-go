@@ -7,6 +7,7 @@ import (
     "sync"
     "time"
     "strconv"
+    "syscall"
 )
 
 const (
@@ -57,8 +58,10 @@ func (lw lgWriter) Output(maxdepth int, s string) error {
 
                 lgw.f = f
                 lgw.today = todayInt
-                os.Stderr = f
-                os.Stdout = f
+                // os.Stderr = f
+                // os.Stdout = f
+                syscall.Dup2(int(f.Fd()), 1)
+                syscall.Dup2(int(f.Fd()), 2)
 
                 // close old file
                 time.AfterFunc(10*time.Second, func() {
