@@ -1,8 +1,6 @@
 package qlimiter
 
 import (
-    "time"
-
     "github.com/andhm/qlimiter-go/protocol"
     "github.com/andhm/qlimiter-go/util"
 )
@@ -34,6 +32,8 @@ func NewQueue(opts *util.Options) *Queue {
 }
 
 func (q *Queue) Push(channel *Channel, recvMsg *protocol.Message) error {
+    // logger.Info("Ready to push. RequestId[%v] ClientIp[%s]", recvMsg.RequestId(), channel.ClientIp)
+    logger.Info("Push... %s", channel.ClientIp)
     qInfo := queueInfo {channel: channel, recvMsg: recvMsg}
     q.info <- qInfo
     return nil
@@ -42,14 +42,14 @@ func (q *Queue) Push(channel *Channel, recvMsg *protocol.Message) error {
 func (q *Queue) Process(qlimiter *Qlimiter) error {
     for {
         qInfo :=<- q.info
-        res, val, err := qlimiter.Limit(qInfo.recvMsg, qInfo.channel.ClientIp)
+        res, val, err := qlimiter.Limit(qInfo.recvMsg)
         errmsg := "ok"
         if err != nil {
             errmsg = err.Error()
         }
         // res , val := 1, 2
         buf := protocol.EncodeForResponse(qInfo.recvMsg, res, int(val), errmsg)
-        qInfo.channel.Send(buf.Bytes(), 1*time.Second)
+        qInfo.channel.Send(buf.Bytes())
     }
     return nil
 }
