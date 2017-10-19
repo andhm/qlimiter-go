@@ -46,17 +46,17 @@ type Header struct {
 }
 
 type Message struct {
-    Header      *Header
+    Header      Header
     Meta        map[string]string
     Type        int
 }
 
-func BuildHeader(requestId uint64, version uint8) *Header {
-    header := &Header{QlimiterMagic, version, requestId}
+func BuildHeader(requestId uint64, version uint8) Header {
+    header := Header{QlimiterMagic, version, requestId}
     return header;
 }
 
-func BuildResponseHeader(requestId uint64) *Header {
+func BuildResponseHeader(requestId uint64) Header {
     return BuildHeader(requestId, QlimiterVersion)
 }
 
@@ -105,8 +105,8 @@ func EncodeForResponse(msg *Message, res int, curr int, errmsg string) (buf *byt
 }
 
 func DecodeFromReader(buf *bufio.Reader) (msg *Message, err error) {
-    header := &Header{}
-    err = binary.Read(buf, binary.BigEndian, header)
+    header := Header{}
+    err = binary.Read(buf, binary.BigEndian, &header)
     if err != nil {
         return nil, err
     }
