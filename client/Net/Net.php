@@ -40,8 +40,8 @@ class Qlimiter_Net_Net {
     protected function write($buffer) {
         $length = strlen($buffer);
         while (true) {
-            $sent = @fwrite($this->_connection, $buffer, $length);
-            if ($sent === false) {
+            $sent = fwrite($this->_connection, $buffer, $length);
+            if ($sent === false || $sent === 0) {
                 throw new Exception('Error to write to net'); // 这个时候可以抛异常
             }
             if ($sent < $length) {
