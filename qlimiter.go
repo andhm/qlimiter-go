@@ -3,12 +3,13 @@ package main
 import (
     "fmt"
     "net"
-    // "net/http"
     "strconv"
-    // "runtime"
     "os"
     "time"
-    // _ "net/http/pprof"
+
+    // for debug
+    "net/http"
+    _ "net/http/pprof"
 
     "github.com/andhm/qlimiter-go/util"
     core "github.com/andhm/qlimiter-go/core"
@@ -45,13 +46,20 @@ func main() {
         port = options.Port
     }
 
+    if logLevel == lg.DEBUG {
+        // for pprof debug
+        debugServerAddress := options.DebugHttpServeIp + ":" + strconv.Itoa(options.DebugHttpServePort)
+        startDebugServer(debugServerAddress)
+    }
+
     startServer(strconv.Itoa(port))
 }
 
 func startServer(addr string) {
     listen, err := net.Listen("tcp", ":"+addr)
     if err != nil {
-        logger.Fatal("listen port fail. %s - %v", addr, err)
+        fmt.Printf("Qlimiter start fail. %v\n", err)
+        logger.Fatal("Listen port fail. %s - %v", addr, err)
         os.Exit(1)
     }
 
@@ -67,10 +75,10 @@ func startServer(addr string) {
     for {
         conn, err := listen.Accept()
         if err != nil {
-            logger.Error("accept fail. %s - %v", addr, err)
+            logger.Error("Accept fail. %s - %v", addr, err)
             os.Exit(1)
         } else {
-            logger.Debug("accept success. conn:%s", conn.RemoteAddr().String())
+            logger.Debug("Accept success. conn:%s", conn.RemoteAddr().String())
             go qlimiterHandler(conn)
         }
     }
@@ -79,10 +87,21 @@ func startServer(addr string) {
 func qlimiterHandler(conn net.Conn) {
     channel := core.BuildChannel(conn, options)
     for {
-        requestMsg, err := channel.Recv(1*time.Second)
+        requestMsg, err := channel.Recv(time.Duration(options.ProcessTimeout) * time.Millisecond)
         if err != nil {
             break
         }
         processor.Push(channel, requestMsg)
     }
+}
+
+func startDebugServer(addr string) {
+    go func() {
+        time.Sleep(300*time.Millisecond) // wait for Qlimiter started
+        logger.Info("Ready to start Debug-Http-Server. address:%s", addr)
+        err := http.ListenAndServe(addr, nil)
+        if err != nil {
+            logger.Info("Start Debug-Http-Server fail. %s - %v", addr, err)
+        }
+    }()
 }
