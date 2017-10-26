@@ -10,7 +10,7 @@ class Qlimiter_Client {
         $this->_port = $port;
     }
 
-    public function setConnectionTimeout($timout) {
+    public function setConnectionTimeout($timeout) {
         $this->_clientHander->setConnectionTimeout($timeout);
     }
 
